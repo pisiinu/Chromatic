@@ -149,6 +149,38 @@ body::after{
 }
 .k-space.on{background:#152030;border-color:#3a7060;color:var(--g);box-shadow:0 0 10px rgba(0,230,118,.18)}
 
+/* RESPONSIVE (mobile landscape) */
+.kbd-panel{touch-action:none}
+@media (max-width:860px){
+  .k{width:46px;height:48px}
+  .klb{font-size:.52rem}.knt{font-size:.6rem}
+  .krow{gap:2px}
+  .krow-ofs{transform:translateX(-24px)}
+  .k-ctrl,.k-shift{width:66px;font-size:.5rem}
+  .k-space{width:180px;font-size:.55rem}
+}
+@media (max-width:660px){
+  .k{width:38px;height:42px}
+  .klb{font-size:.46rem}.knt{font-size:.54rem}
+  .krow{gap:2px}
+  .krow-ofs{transform:translateX(-20px)}
+  .k-ctrl,.k-shift{width:56px;font-size:.46rem}
+  .k-space{width:150px;font-size:.5rem}
+  .chord-big{font-size:2.2rem}
+  body{padding:12px 6px}
+}
+/* portrait warning */
+#portrait-msg{
+  display:none;position:fixed;inset:0;background:var(--bg);
+  flex-direction:column;align-items:center;justify-content:center;
+  z-index:300;gap:12px;text-align:center;padding:24px;
+}
+#portrait-msg .icon{font-size:3rem}
+#portrait-msg p{font-size:.9rem;color:var(--mu);line-height:1.7}
+@media (orientation:portrait) and (max-width:768px){
+  #portrait-msg{display:flex}
+}
+
 /* HINTS */
 .hints{
   margin-top:12px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
@@ -177,6 +209,11 @@ body::after{
 </style>
 </head>
 <body>
+
+<div id="portrait-msg">
+  <div class="icon">↺</div>
+  <p>横向き（ランドスケープ）に<br>してご使用ください</p>
+</div>
 
 <div id="ov">
   <div class="ov-ttl">クロマチック<br>キーボード楽器</div>
@@ -370,6 +407,7 @@ let ctrlHeld = false, shiftHeld = false;
 
 function startAudio() {
   document.getElementById('ov').style.display = 'none';
+  if (ctx) return;
   ctx = new (window.AudioContext||window.webkitAudioContext)();
   master = ctx.createGain();
   master.gain.value = 0.55;
@@ -565,6 +603,63 @@ window.addEventListener('blur', () => {
   document.getElementById('k-shift').classList.remove('on');
   updateSus(); updateOct(); updateDisplay();
 });
+
+// ─────────────────────────────────────────
+//  TOUCH SUPPORT
+// ─────────────────────────────────────────
+function ensureAudio() {
+  if (!ctx) startAudio();
+}
+
+// Note keys
+document.querySelectorAll('.k[id^="k-"]').forEach(el => {
+  const code = el.id.slice(2);
+  if (!KEY_MAP[code]) return;
+  el.addEventListener('touchstart', e => {
+    e.preventDefault(); ensureAudio();
+    if (!held.has(code)) { held.add(code); playNote(code); }
+  }, {passive:false});
+  el.addEventListener('touchend', e => {
+    e.preventDefault();
+    held.delete(code); stopNote(code); setKeyOn(code,false); updateDisplay();
+  }, {passive:false});
+  el.addEventListener('touchcancel', e => {
+    held.delete(code); stopNote(code); setKeyOn(code,false); updateDisplay();
+  });
+});
+
+// Sustain (space)
+const spEl = document.getElementById('k-space');
+spEl.addEventListener('touchstart', e => {
+  e.preventDefault(); ensureAudio();
+  sustainOn=true; spEl.classList.add('on'); updateSus();
+}, {passive:false});
+spEl.addEventListener('touchend', e => {
+  e.preventDefault();
+  sustainOn=false; spEl.classList.remove('on'); updateSus(); releaseSustain();
+}, {passive:false});
+
+// Ctrl (oct down)
+const ctEl = document.getElementById('k-ctrl');
+ctEl.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (!ctrlHeld) { ctrlHeld=true; ctEl.classList.add('on'); updateOct(); }
+}, {passive:false});
+ctEl.addEventListener('touchend', e => {
+  e.preventDefault();
+  ctrlHeld=false; ctEl.classList.remove('on'); updateOct();
+}, {passive:false});
+
+// Shift (oct up)
+const shEl = document.getElementById('k-shift');
+shEl.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (!shiftHeld) { shiftHeld=true; shEl.classList.add('on'); updateOct(); }
+}, {passive:false});
+shEl.addEventListener('touchend', e => {
+  e.preventDefault();
+  shiftHeld=false; shEl.classList.remove('on'); updateOct();
+}, {passive:false});
 </script>
 </body>
 </html>

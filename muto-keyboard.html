@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クロマチックキーボード楽器</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090e;--surf:#0d1320;--brd:#18263a;
+  --g:#00e676;--gd:#001f0d;--gm:#007a38;
+  --b:#4488ff;--bd:#071032;--bm:#1a3d99;
+  --p:#ff44aa;--pd:#2d0018;--pm:#991a56;
+  --tx:#b8cce0;--mu:#3a5570;--wh:#dde8f4;
+}
+body{
+  background:var(--bg);color:var(--tx);
+  font-family:'Noto Sans JP',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;padding:24px 12px;
+  user-select:none;overflow-x:hidden;
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.025) 3px,rgba(0,0,0,.025) 4px);
+}
+.wrap{width:100%;max-width:920px;position:relative;z-index:1}
+
+/* HEADER */
+.hdr{text-align:center;margin-bottom:18px}
+.hdr-ttl{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:clamp(.95rem,3vw,1.45rem);
+  color:var(--b);letter-spacing:.22em;text-transform:uppercase;
+}
+.hdr-sub{font-size:.6rem;color:var(--mu);letter-spacing:.4em;margin-top:3px;text-transform:uppercase}
+
+/* STATUS BADGES */
+.status{display:flex;justify-content:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+.badge{
+  font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:.15em;
+  padding:4px 14px;border:1px solid var(--brd);border-radius:20px;color:var(--mu);
+  transition:all .15s;
+}
+.badge.on-sus{border-color:var(--g);color:var(--g)}
+.badge.on-oct-dn{border-color:#7986cb;color:#7986cb}
+.badge.on-oct-up{border-color:var(--p);color:var(--p)}
+
+/* CHORD AREA */
+.chord-area{
+  text-align:center;min-height:96px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin:6px 0 14px;
+}
+.notes-now{font-size:.75rem;color:var(--b);letter-spacing:.18em;min-height:20px}
+.chord-big{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:clamp(2.4rem,8vw,5rem);color:var(--wh);line-height:1;
+  transition:opacity .08s;
+}
+.chord-big.dim{opacity:.1}
+.chord-big.lit{text-shadow:0 0 36px rgba(68,136,255,.55),0 0 72px rgba(68,136,255,.18)}
+.chord-jp{font-size:.68rem;color:var(--mu);letter-spacing:.18em;margin-top:4px;min-height:18px}
+
+/* LEGEND */
+.legend{display:flex;justify-content:center;gap:20px;margin:6px 0;font-size:.62rem}
+.leg{display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.g{background:var(--g);box-shadow:0 0 5px var(--g)}
+.dot.b{background:var(--b);box-shadow:0 0 5px var(--b)}
+.dot.p{background:var(--p);box-shadow:0 0 5px var(--p)}
+
+/* KEYBOARD PANEL */
+.kbd-panel{background:var(--surf);border:1px solid var(--brd);border-radius:14px;padding:12px}
+.krow{display:flex;gap:3px;justify-content:center;margin-bottom:3px}
+.krow:last-of-type{margin-bottom:0}
+
+/* KEY BASE */
+.k{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:54px;height:54px;border-radius:7px;border:1px solid;gap:2px;
+  transition:transform .04s,box-shadow .04s,background .04s;
+  flex-shrink:0;
+}
+.klb{font-size:.6rem;font-weight:700;line-height:1}
+.knt{font-size:.66rem;line-height:1}
+
+/* inactive */
+.k.off{background:#0b1018;border-color:#18262e}
+.k.off .klb{color:#243040}.k.off .knt{color:transparent}
+
+/* row offset (numbers + QWERTY) */
+.krow-ofs{transform:translateX(-28px)}
+
+/* green natural (白鍵) */
+.k.g.nat{background:#003d18;border-color:#00a844}
+.k.g.nat .knt{color:#44ffaa}
+/* green sharp (黒鍵) */
+.k.g.sh{background:#000c05;border-color:#005528}
+.k.g.sh .knt{color:#009944}
+/* blue natural */
+.k.b.nat{background:#0f1d4a;border-color:#2a55cc}
+.k.b.nat .knt{color:#88bbff}
+/* blue sharp */
+.k.b.sh{background:#030a1c;border-color:#122880}
+.k.b.sh .knt{color:#2255aa}
+/* pink natural */
+.k.p.nat{background:#45002a;border-color:#cc2272}
+.k.p.nat .knt{color:#ff88cc}
+/* pink sharp */
+.k.p.sh{background:#140010;border-color:#771148}
+.k.p.sh .knt{color:#bb2266}
+
+/* green */
+.k.g{background:var(--gd);border-color:var(--gm)}
+.k.g .klb{color:rgba(0,230,118,.55)}.k.g .knt{color:var(--g)}
+.k.g.on{background:var(--g);border-color:var(--g);transform:scale(.94);box-shadow:0 0 14px var(--g),0 0 30px rgba(0,230,118,.25)}
+.k.g.on .klb,.k.g.on .knt{color:#001a09}
+
+/* blue */
+.k.b{background:var(--bd);border-color:var(--bm)}
+.k.b .klb{color:rgba(68,136,255,.55)}.k.b .knt{color:var(--b)}
+.k.b.on{background:var(--b);border-color:var(--b);transform:scale(.94);box-shadow:0 0 14px var(--b),0 0 30px rgba(68,136,255,.25)}
+.k.b.on .klb,.k.b.on .knt{color:#02081e}
+
+/* pink */
+.k.p{background:var(--pd);border-color:var(--pm)}
+.k.p .klb{color:rgba(255,68,170,.55)}.k.p .knt{color:var(--p)}
+.k.p.on{background:var(--p);border-color:var(--p);transform:scale(.94);box-shadow:0 0 14px var(--p),0 0 30px rgba(255,68,170,.25)}
+.k.p.on .klb,.k.p.on .knt{color:#1a0010}
+
+/* BOTTOM ROW */
+.bot-row{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.k-ctrl,.k-shift{
+  width:82px;height:40px;border-radius:7px;border:1px solid;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:.55rem;font-weight:700;
+  letter-spacing:.08em;text-align:center;line-height:1.3;transition:all .05s;
+}
+.k-ctrl{background:#0a0f20;border-color:#5c68aa;color:#7986cb}
+.k-ctrl.on{background:#7986cb;color:#010510;box-shadow:0 0 12px #7986cb}
+.k-shift{background:var(--pd);border-color:var(--pm);color:var(--p)}
+.k-shift.on{background:var(--p);color:#100008;box-shadow:0 0 12px var(--p)}
+.k-space{
+  width:230px;height:40px;border-radius:7px;border:1px solid #182838;
+  background:#0a141e;display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;color:var(--mu);gap:6px;transition:all .05s;
+}
+.k-space.on{background:#152030;border-color:#3a7060;color:var(--g);box-shadow:0 0 10px rgba(0,230,118,.18)}
+
+/* HINTS */
+.hints{
+  margin-top:12px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  font-size:.58rem;color:var(--mu);
+}
+.hint{padding:4px 10px;border:1px solid var(--brd);border-radius:4px}
+
+/* OVERLAY */
+#ov{
+  position:fixed;inset:0;background:rgba(7,9,14,.96);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:200;gap:10px;cursor:pointer;
+}
+.ov-ttl{
+  font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;
+  color:var(--b);text-align:center;line-height:1.4;
+}
+.ov-sub{font-size:.72rem;color:var(--mu);letter-spacing:.25em;margin-top:2px}
+.ov-btn{
+  margin-top:18px;padding:12px 44px;border:2px solid var(--b);
+  border-radius:30px;color:var(--b);
+  font-family:'Orbitron',monospace;font-size:.78rem;letter-spacing:.18em;
+  cursor:pointer;transition:all .2s;background:transparent;
+}
+.ov-btn:hover{background:var(--b);color:#010820;box-shadow:0 0 24px var(--b)}
+</style>
+</head>
+<body>
+
+<div id="ov">
+  <div class="ov-ttl">クロマチック<br>キーボード楽器</div>
+  <div class="ov-sub">inspired by Muto layout</div>
+  <button class="ov-btn" onclick="startAudio()">▶ クリックして開始</button>
+</div>
+
+<div class="wrap">
+  <div class="hdr">
+    <div class="hdr-ttl">クロマチックキーボード楽器</div>
+    <div class="hdr-sub">Chromatic Keyboard Instrument &nbsp;·&nbsp; inspired by Muto layout</div>
+  </div>
+
+  <div class="status">
+    <div class="badge" id="oct-badge">OCT ±0</div>
+    <div class="badge" id="sus-badge">SUSTAIN  OFF</div>
+  </div>
+
+  <div class="chord-area">
+    <div class="notes-now" id="notes-now"></div>
+    <div class="chord-big dim" id="chord-big">—</div>
+    <div class="chord-jp" id="chord-jp"></div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="dot g"></div><span style="color:var(--g)">低音域</span></div>
+    <div class="leg"><div class="dot b"></div><span style="color:var(--b)">メイン</span></div>
+    <div class="leg"><div class="dot p"></div><span style="color:var(--p)">高音域</span></div>
+  </div>
+
+  <div class="kbd-panel">
+    <div id="krows"></div>
+    <div class="bot-row">
+      <div class="k-ctrl" id="k-ctrl">CTRL<br>▼ OCT</div>
+      <div class="k-space" id="k-space">― SUSTAIN PEDAL ―</div>
+      <div class="k-shift" id="k-shift">SHIFT<br>▲ OCT</div>
+    </div>
+  </div>
+
+  <div class="hints">
+    <div class="hint"><span style="color:var(--b)">Ctrl</span> を押している間 = 1オクターブ↓</div>
+    <div class="hint"><span style="color:var(--p)">Shift</span> を押している間 = 1オクターブ↑</div>
+    <div class="hint"><span style="color:var(--g)">Space</span> = サスティンペダル</div>
+    <div class="hint">3音以上でコード名を自動表示</div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  NOTE DATA
+// ─────────────────────────────────────────
+const JP = ['ド','ド#','レ','レ#','ミ','ファ','ファ#','ソ','ソ#','ラ','ラ#','シ'];
+const EN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const CHORDS = [
+  {ivl:[0,4,7],       sym:'',      jp:'メジャー'},
+  {ivl:[0,3,7],       sym:'m',     jp:'マイナー'},
+  {ivl:[0,4,7,11],    sym:'M7',    jp:'メジャー7th'},
+  {ivl:[0,4,7,10],    sym:'7',     jp:'ドミナント7th'},
+  {ivl:[0,3,7,10],    sym:'m7',    jp:'マイナー7th'},
+  {ivl:[0,3,7,11],    sym:'mM7',   jp:'マイナーメジャー7th'},
+  {ivl:[0,4,8],       sym:'aug',   jp:'オーギュメント'},
+  {ivl:[0,3,6],       sym:'dim',   jp:'ディミニッシュ'},
+  {ivl:[0,3,6,9],     sym:'dim7',  jp:'ディミニッシュ7th'},
+  {ivl:[0,3,6,10],    sym:'m7♭5',  jp:'ハーフディミニッシュ'},
+  {ivl:[0,2,7],       sym:'sus2',  jp:'サスペンデッド2nd'},
+  {ivl:[0,5,7],       sym:'sus4',  jp:'サスペンデッド4th'},
+  {ivl:[0,4,7,9],     sym:'6',     jp:'メジャー6th'},
+  {ivl:[0,3,7,9],     sym:'m6',    jp:'マイナー6th'},
+  {ivl:[0,2,4,7],     sym:'add9',  jp:'アドナンス9th'},
+  {ivl:[0,4,7,2],     sym:'add9',  jp:'アドナンス9th'},
+];
+
+function detectChord(midiSet) {
+  const pcs = [...new Set([...midiSet].map(n=>n%12))].sort((a,b)=>a-b);
+  if (pcs.length < 3) return null;
+  for (const root of pcs) {
+    const norm = pcs.map(p=>((p-root+12)%12)).sort((a,b)=>a-b);
+    for (const c of CHORDS) {
+      if (norm.length===c.ivl.length && norm.every((v,i)=>v===c.ivl[i]))
+        return {name: EN[root]+c.sym, jp: JP[root]+' '+c.jp};
+    }
+  }
+  return {name:'?', jp:'不明なコード'};
+}
+
+// ─────────────────────────────────────────
+//  KEY MAP
+// ─────────────────────────────────────────
+// [code, noteClass, octaveOffset, noteLabel, color]
+const RAW = [
+  // number row
+  ['Digit1',5,-1,'ファ','g'],   ['Digit2',7,-1,'ソ','g'],
+  ['Digit3',9,-1,'ラ','g'],     ['Digit4',11,-1,'シ','g'],
+  ['Digit5',1,0,'ド#','b'],     ['Digit6',3,0,'レ#','b'],
+  ['Digit7',5,0,'ファ','b'],    ['Digit8',7,0,'ソ','b'],
+  ['Digit9',9,0,'ラ','b'],      ['Digit0',11,0,'シ','b'],
+  ['Minus',1,1,'ド#','p'],      ['Equal',3,1,'レ#','p'],
+  ['IntlYen',5,1,'ファ','p'],
+  // QWERTY
+  ['KeyQ',6,-1,'ファ#','g'],    ['KeyW',8,-1,'ソ#','g'],
+  ['KeyE',10,-1,'ラ#','g'],     ['KeyR',0,0,'ド','b'],
+  ['KeyT',2,0,'レ','b'],        ['KeyY',4,0,'ミ','b'],
+  ['KeyU',6,0,'ファ#','b'],     ['KeyI',8,0,'ソ#','b'],
+  ['KeyO',10,0,'ラ#','b'],      ['KeyP',0,1,'ド','p'],
+  ['BracketLeft',2,1,'レ','p'], ['BracketRight',4,1,'ミ','p'],
+  // ASDF
+  ['KeyA',7,-1,'ソ','g'],       ['KeyS',9,-1,'ラ','g'],
+  ['KeyD',11,-1,'シ','g'],      ['KeyF',1,0,'ド#','b'],
+  ['KeyG',3,0,'レ#','b'],       ['KeyH',5,0,'ファ','b'],
+  ['KeyJ',7,0,'ソ','b'],        ['KeyK',9,0,'ラ','b'],
+  ['KeyL',11,0,'シ','b'],       ['Semicolon',1,1,'ド#','p'],
+  ['Quote',3,1,'レ#','p'],      ['Backslash',5,1,'ファ','p'],
+  // ZXCV
+  ['KeyZ',8,-1,'ソ#','g'],      ['KeyX',10,-1,'ラ#','g'],
+  ['KeyC',0,0,'ド','b'],        ['KeyV',2,0,'レ','b'],
+  ['KeyB',4,0,'ミ','b'],        ['KeyN',6,0,'ファ#','b'],
+  ['KeyM',8,0,'ソ#','b'],       ['Comma',10,0,'ラ#','b'],
+  ['Period',0,1,'ド','p'],      ['Slash',2,1,'レ','p'],
+  ['IntlRo',4,1,'ミ','p'],
+];
+
+const KEY_MAP = {};
+for (const [code,nc,oo,lbl,color] of RAW)
+  KEY_MAP[code] = {noteClass:nc, octaveOffset:oo, label:lbl, color};
+
+// display rows: [code, keyLabel, noteLabel, color (null=inactive)]
+const DROWS = [
+  [
+    ['Digit1','1','ファ','g'], ['Digit2','2','ソ','g'],
+    ['Digit3','3','ラ','g'],
+    ['Digit4','4','シ','g'], ['Digit5','5','ド#','b'],
+    ['Digit6','6','レ#','b'], ['Digit7','7','ファ','b'],
+    ['Digit8','8','ソ','b'], ['Digit9','9','ラ','b'],
+    ['Digit0','0','シ','b'], ['Minus','-','ド#','p'],
+    ['Equal','^','レ#','p'], ['IntlYen','¥','ファ','p'],
+  ],
+  [
+    ['KeyQ','Q','ファ#','g'], ['KeyW','W','ソ#','g'],
+    ['KeyE','E','ラ#','g'],   ['KeyR','R','ド','b'],
+    ['KeyT','T','レ','b'],    ['KeyY','Y','ミ','b'],
+    ['KeyU','U','ファ#','b'], ['KeyI','I','ソ#','b'],
+    ['KeyO','O','ラ#','b'],   ['KeyP','P','ド','p'],
+    ['BracketLeft','@','レ','p'], ['BracketRight','[','ミ','p'],
+  ],
+  [
+    ['KeyA','A','ソ','g'],  ['KeyS','S','ラ','g'],
+    ['KeyD','D','シ','g'],  ['KeyF','F','ド#','b'],
+    ['KeyG','G','レ#','b'], ['KeyH','H','ファ','b'],
+    ['KeyJ','J','ソ','b'],  ['KeyK','K','ラ','b'],
+    ['KeyL','L','シ','b'],  ['Semicolon',';','ド#','p'],
+    ['Quote',':','レ#','p'], ['Backslash',']','ファ','p'],
+  ],
+  [
+    ['KeyZ','Z','ソ#','g'],  ['KeyX','X','ラ#','g'],
+    ['KeyC','C','ド','b'],   ['KeyV','V','レ','b'],
+    ['KeyB','B','ミ','b'],   ['KeyN','N','ファ#','b'],
+    ['KeyM','M','ソ#','b'],  ['Comma',',','ラ#','b'],
+    ['Period','.','ド','p'], ['Slash','/','レ','p'],
+    ['IntlRo','\\','ミ','p'],
+  ],
+];
+
+// ─────────────────────────────────────────
+//  BUILD KEYBOARD UI
+// ─────────────────────────────────────────
+const krows = document.getElementById('krows');
+DROWS.forEach((row, ri) => {
+  const d = document.createElement('div');
+  d.className = 'krow' + (ri < 2 ? ' krow-ofs' : '');
+  for (const [code,kl,nl,cl] of row) {
+    const k = document.createElement('div');
+    k.id = 'k-'+code;
+    const sharp = cl && nl.includes('#');
+    const natural = cl && !nl.includes('#');
+    k.className = 'k ' + (cl || 'off') + (sharp ? ' sh' : natural ? ' nat' : '');
+    k.innerHTML = `<span class="klb">${kl}</span><span class="knt">${nl}</span>`;
+    d.appendChild(k);
+  }
+  krows.appendChild(d);
+});
+
+// ─────────────────────────────────────────
+//  AUDIO ENGINE
+// ─────────────────────────────────────────
+let ctx = null, master = null;
+const active = new Map();   // code → {osc1,osc2,env,midi}
+const sustained = new Map();
+let sustainOn = false;
+let ctrlHeld = false, shiftHeld = false;
+
+function startAudio() {
+  document.getElementById('ov').style.display = 'none';
+  ctx = new (window.AudioContext||window.webkitAudioContext)();
+  master = ctx.createGain();
+  master.gain.value = 0.55;
+  master.connect(ctx.destination);
+}
+
+const freq = midi => 440 * Math.pow(2, (midi-69)/12);
+
+function playNote(code) {
+  if (!ctx || active.has(code)) return;
+  const km = KEY_MAP[code];
+  if (!km) return;
+  const oct = 5 + km.octaveOffset + (shiftHeld?1:0) + (ctrlHeld?-1:0);
+  const midi = Math.max(12, Math.min(115, oct*12 + km.noteClass));
+  const f = freq(midi);
+
+  const o1 = ctx.createOscillator();
+  const o2 = ctx.createOscillator();
+  const o3 = ctx.createOscillator();
+  const env = ctx.createGain();
+
+  o1.type = 'triangle'; o2.type = 'sine'; o3.type = 'sine';
+  o1.frequency.value = f;
+  o2.frequency.value = f * 2;
+  o3.frequency.value = f * 3;
+  const g1=ctx.createGain(); g1.gain.value=0.72;
+  const g2=ctx.createGain(); g2.gain.value=0.20;
+  const g3=ctx.createGain(); g3.gain.value=0.06;
+  o1.detune.value=3; o2.detune.value=-2;
+
+  o1.connect(g1); o2.connect(g2); o3.connect(g3);
+  g1.connect(env); g2.connect(env); g3.connect(env);
+  env.connect(master);
+
+  const now = ctx.currentTime;
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(0.42, now+0.007);
+  env.gain.exponentialRampToValueAtTime(0.22, now+0.13);
+
+  o1.start(now); o2.start(now); o3.start(now);
+  active.set(code, {o1,o2,o3,env,midi});
+  setKeyOn(code, true);
+  updateDisplay();
+}
+
+function doRelease(data, long) {
+  const rt = long ? 2.4 : 0.45;
+  const now = ctx.currentTime;
+  try {
+    data.env.gain.cancelScheduledValues(now);
+    data.env.gain.setValueAtTime(data.env.gain.value, now);
+    data.env.gain.exponentialRampToValueAtTime(0.0001, now+rt);
+    setTimeout(()=>{ try{data.o1.stop();data.o2.stop();data.o3.stop()}catch(e){} }, (rt+.05)*1000);
+  } catch(e) {}
+}
+
+function stopNote(code) {
+  const data = active.get(code);
+  if (!data) return;
+  active.delete(code);
+  if (sustainOn) { sustained.set(code, data); }
+  else { doRelease(data, false); setKeyOn(code, false); }
+  updateDisplay();
+}
+
+function releaseSustain() {
+  for (const [code,data] of sustained) {
+    doRelease(data, false);
+    setKeyOn(code, false);
+  }
+  sustained.clear();
+  updateDisplay();
+}
+
+// ─────────────────────────────────────────
+//  DISPLAY
+// ─────────────────────────────────────────
+function setKeyOn(code, on) {
+  const el = document.getElementById('k-'+code);
+  if (el) el.classList.toggle('on', on);
+}
+
+function updateDisplay() {
+  const all = new Set();
+  for (const [,d] of active) all.add(d.midi);
+  for (const [,d] of sustained) all.add(d.midi);
+
+  const uniqPC = [...new Set([...all].map(m=>m%12))];
+  document.getElementById('notes-now').textContent =
+    uniqPC.length ? uniqPC.map(p=>JP[p]).join('  ') : '';
+
+  const cb = document.getElementById('chord-big');
+  const cj = document.getElementById('chord-jp');
+  if (all.size >= 3) {
+    const r = detectChord(all);
+    if (r) {
+      cb.textContent = r.name;
+      cb.classList.remove('dim'); cb.classList.add('lit');
+      cj.textContent = r.jp;
+    } else {
+      cb.textContent = '—'; cb.classList.add('dim'); cb.classList.remove('lit');
+      cj.textContent = '';
+    }
+  } else {
+    cb.textContent = '—'; cb.classList.add('dim'); cb.classList.remove('lit');
+    cj.textContent = '';
+  }
+}
+
+function updateOct() {
+  const s = (shiftHeld?1:0)+(ctrlHeld?-1:0);
+  const el = document.getElementById('oct-badge');
+  el.className = 'badge';
+  if (s < 0) { el.className+=' on-oct-dn'; el.textContent='OCT '+s; }
+  else if (s > 0) { el.className+=' on-oct-up'; el.textContent='OCT +'+s; }
+  else el.textContent='OCT ±0';
+}
+
+function updateSus() {
+  const el = document.getElementById('sus-badge');
+  el.className = 'badge'+(sustainOn?' on-sus':'');
+  el.textContent = sustainOn ? 'SUSTAIN  ON' : 'SUSTAIN  OFF';
+}
+
+// ─────────────────────────────────────────
+//  EVENT HANDLERS
+// ─────────────────────────────────────────
+const held = new Set();
+
+document.addEventListener('keydown', e => {
+  if (!ctx) return;
+  const c = e.code;
+
+  if (c==='Space') {
+    e.preventDefault();
+    if (!sustainOn) { sustainOn=true; document.getElementById('k-space').classList.add('on'); updateSus(); }
+    return;
+  }
+  if (c==='ControlLeft'||c==='ControlRight') {
+    e.preventDefault();
+    if (!ctrlHeld) { ctrlHeld=true; document.getElementById('k-ctrl').classList.add('on'); updateOct(); }
+    return;
+  }
+  if (c==='ShiftLeft'||c==='ShiftRight') {
+    e.preventDefault();
+    if (!shiftHeld) { shiftHeld=true; document.getElementById('k-shift').classList.add('on'); updateOct(); }
+    return;
+  }
+
+  if (KEY_MAP[c]) { e.preventDefault(); }
+  if (!held.has(c) && KEY_MAP[c]) { held.add(c); playNote(c); }
+});
+
+document.addEventListener('keyup', e => {
+  if (!ctx) return;
+  const c = e.code;
+
+  if (c==='Space') {
+    e.preventDefault();
+    sustainOn = false;
+    document.getElementById('k-space').classList.remove('on');
+    updateSus(); releaseSustain(); return;
+  }
+  if (c==='ControlLeft'||c==='ControlRight') {
+    ctrlHeld = false;
+    document.getElementById('k-ctrl').classList.remove('on');
+    updateOct(); return;
+  }
+  if (c==='ShiftLeft'||c==='ShiftRight') {
+    shiftHeld = false;
+    document.getElementById('k-shift').classList.remove('on');
+    updateOct(); return;
+  }
+
+  if (held.has(c)) {
+    held.delete(c);
+    stopNote(c);
+    setKeyOn(c, false);
+    updateDisplay();
+  }
+});
+
+window.addEventListener('blur', () => {
+  if (!ctx) return;
+  for (const [code,data] of active) { doRelease(data,false); setKeyOn(code,false); }
+  active.clear();
+  for (const [code,data] of sustained) { doRelease(data,false); setKeyOn(code,false); }
+  sustained.clear();
+  held.clear();
+  sustainOn=false; ctrlHeld=false; shiftHeld=false;
+  document.getElementById('k-space').classList.remove('on');
+  document.getElementById('k-ctrl').classList.remove('on');
+  document.getElementById('k-shift').classList.remove('on');
+  updateSus(); updateOct(); updateDisplay();
+});
+</script>
+</body>
+</html>

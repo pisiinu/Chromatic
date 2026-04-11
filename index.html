@@ -86,6 +86,13 @@ body::after{
 .klb{font-size:var(--klb,.6rem);font-weight:700;line-height:1}
 .knt{font-size:var(--knt,.66rem);line-height:1}
 
+/* timbre button */
+.k.timbre-btn{background:#0a1428;border-color:#2a4a7a;cursor:pointer}
+.k.timbre-btn .klb{color:#4466aa}
+.k.timbre-btn .knt{color:var(--b);font-size:.56rem}
+.k.timbre-btn:active{background:var(--b);transform:scale(.94)}
+.k.timbre-btn:active .klb,.k.timbre-btn:active .knt{color:#010820}
+
 /* inactive */
 .k.off{background:#0b1018;border-color:#18262e}
 .k.off .klb{color:#243040}.k.off .knt{color:transparent}
@@ -150,26 +157,17 @@ body::after{
 .k-space.on{background:#152030;border-color:#3a7060;color:var(--g);box-shadow:0 0 10px rgba(0,230,118,.18)}
 
 
-/* RESPONSIVE (mobile landscape) */
+/* RESPONSIVE (mobile) — scale the whole keyboard panel */
+#kbd-scaler{width:100%;overflow:hidden}
+.kbd-panel{transform-origin:top left}
 @media (max-width:860px){
-  body{padding:8px 0}
-  .wrap{padding:0 4px}
-  .kbd-panel{padding:6px 0;border-left:none;border-right:none;border-radius:8px;overflow:hidden}
-  .krow{gap:2px;width:100%}
-  .k{flex:1;min-width:0;height:50px;width:auto}
-  .klb{font-size:.5rem}.knt{font-size:.58rem}
-  .krow-ofs{transform:translateX(calc(-100vw / 26))}
-  .k-ctrl,.k-shift{flex:1;width:auto;font-size:.5rem}
-  .k-space{flex:2;width:auto;font-size:.55rem}
-  .bot-row{width:100%;padding:0 4px}
+  body{padding:8px 4px}
   .chord-big{font-size:2.8rem}
   .hints{display:none}
   .status{margin:6px 0}
   .chord-area{margin:4px 0 10px}
 }
 @media (max-width:660px){
-  .k{height:44px}
-  .klb{font-size:.44rem}.knt{font-size:.52rem}
   .chord-big{font-size:2.2rem}
 }
 /* portrait warning */
@@ -233,6 +231,7 @@ body::after{
   <div class="status">
     <div class="badge" id="oct-badge">OCT ±0</div>
     <div class="badge" id="sus-badge">SUSTAIN  OFF</div>
+    <div class="badge" id="timbre-badge" style="cursor:pointer;border-color:var(--b);color:var(--b);padding:4px 18px" onclick="nextTimbre()">▶ 三角波</div>
   </div>
 
   <div class="chord-area">
@@ -247,6 +246,7 @@ body::after{
     <div class="leg"><div class="dot p"></div><span style="color:var(--p)">高音域</span></div>
   </div>
 
+  <div id="kbd-scaler">
   <div class="kbd-panel">
     <div id="krows"></div>
     <div class="bot-row">
@@ -254,6 +254,7 @@ body::after{
       <div class="k-space" id="k-space">― SUSTAIN PEDAL ―</div>
       <div class="k-shift" id="k-shift">SHIFT<br>▲ OCT</div>
     </div>
+  </div>
   </div>
 
   <div class="hints">
@@ -403,10 +404,25 @@ DROWS.forEach((row, ri) => {
 //  AUDIO ENGINE
 // ─────────────────────────────────────────
 let ctx = null, master = null;
-const active = new Map();   // code → {osc1,osc2,env,midi}
+const active = new Map();
 const sustained = new Map();
 let sustainOn = false;
 let ctrlHeld = false, shiftHeld = false;
+
+// ─── TIMBRE ───
+const TIMBRES = [
+  {key:'triangle', label:'三角波'},
+  {key:'square',   label:'矩形波'},
+  {key:'sine',     label:'サイン波'},
+  {key:'sawtooth', label:'ノコギリ波'},
+];
+let timbreIdx = 0;
+
+function nextTimbre() {
+  timbreIdx = (timbreIdx + 1) % TIMBRES.length;
+  const t = TIMBRES[timbreIdx];
+  document.getElementById('timbre-badge').textContent = '▶ ' + t.label;
+}
 
 function startAudio() {
   document.getElementById('ov').style.display = 'none';
@@ -426,25 +442,50 @@ function playNote(code) {
   const oct = 5 + km.octaveOffset + (shiftHeld?1:0) + (ctrlHeld?-1:0);
   const midi = Math.max(12, Math.min(115, oct*12 + km.noteClass));
   const f = freq(midi);
+  const timbre = TIMBRES[timbreIdx].key;
 
   const o1 = ctx.createOscillator();
   const o2 = ctx.createOscillator();
   const o3 = ctx.createOscillator();
   const env = ctx.createGain();
 
-  o1.type = 'triangle'; o2.type = 'sine'; o3.type = 'sine';
-  o1.frequency.value = f;
-  o2.frequency.value = f * 2;
-  o3.frequency.value = f * 3;
-  const g1=ctx.createGain(); g1.gain.value=0.72;
-  const g2=ctx.createGain(); g2.gain.value=0.20;
-  const g3=ctx.createGain(); g3.gain.value=0.06;
-  o1.detune.value=3; o2.detune.value=-2;
+  if (timbre === 'triangle') {
+    o1.type='triangle'; o2.type='sine'; o3.type='sine';
+    o1.frequency.value=f; o2.frequency.value=f*2; o3.frequency.value=f*3;
+    const g1=ctx.createGain(); g1.gain.value=0.72;
+    const g2=ctx.createGain(); g2.gain.value=0.20;
+    const g3=ctx.createGain(); g3.gain.value=0.06;
+    o1.detune.value=3; o2.detune.value=-2;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3);
+    g1.connect(env); g2.connect(env); g3.connect(env);
+  } else if (timbre === 'square') {
+    o1.type='square'; o2.type='square'; o3.type='sine';
+    o1.frequency.value=f; o2.frequency.value=f*2; o3.frequency.value=f*0.5;
+    const g1=ctx.createGain(); g1.gain.value=0.55;
+    const g2=ctx.createGain(); g2.gain.value=0.12;
+    const g3=ctx.createGain(); g3.gain.value=0.08;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3);
+    g1.connect(env); g2.connect(env); g3.connect(env);
+  } else if (timbre === 'sine') {
+    o1.type='sine'; o2.type='sine'; o3.type='sine';
+    o1.frequency.value=f; o2.frequency.value=f*2; o3.frequency.value=f*3;
+    const g1=ctx.createGain(); g1.gain.value=0.80;
+    const g2=ctx.createGain(); g2.gain.value=0.12;
+    const g3=ctx.createGain(); g3.gain.value=0.04;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3);
+    g1.connect(env); g2.connect(env); g3.connect(env);
+  } else { // sawtooth
+    o1.type='sawtooth'; o2.type='sawtooth'; o3.type='sine';
+    o1.frequency.value=f; o2.frequency.value=f*2; o3.frequency.value=f*3;
+    const g1=ctx.createGain(); g1.gain.value=0.50;
+    const g2=ctx.createGain(); g2.gain.value=0.10;
+    const g3=ctx.createGain(); g3.gain.value=0.05;
+    o1.detune.value=4; o2.detune.value=-3;
+    o1.connect(g1); o2.connect(g2); o3.connect(g3);
+    g1.connect(env); g2.connect(env); g3.connect(env);
+  }
 
-  o1.connect(g1); o2.connect(g2); o3.connect(g3);
-  g1.connect(env); g2.connect(env); g3.connect(env);
   env.connect(master);
-
   const now = ctx.currentTime;
   env.gain.setValueAtTime(0, now);
   env.gain.linearRampToValueAtTime(0.42, now+0.007);
@@ -544,6 +585,7 @@ document.addEventListener('keydown', e => {
   if (!ctx) return;
   const c = e.code;
 
+  if (c==='Enter') { e.preventDefault(); nextTimbre(); return; }
   if (c==='Space') {
     e.preventDefault();
     if (!sustainOn) { sustainOn=true; document.getElementById('k-space').classList.add('on'); updateSus(); }
@@ -608,28 +650,92 @@ window.addEventListener('blur', () => {
 });
 
 // ─────────────────────────────────────────
-//  TOUCH SUPPORT
+//  SCALE KEYBOARD TO FIT SCREEN
+// ─────────────────────────────────────────
+function scaleKeyboard() {
+  const scaler = document.getElementById('kbd-scaler');
+  const panel = document.querySelector('.kbd-panel');
+  panel.style.transform = '';
+  const panelW = panel.offsetWidth;
+  const availW = scaler.offsetWidth;
+  if (panelW > availW) {
+    const s = availW / panelW;
+    panel.style.transform = `scale(${s})`;
+    panel.style.transformOrigin = 'top left';
+    scaler.style.height = (panel.offsetHeight * s) + 'px';
+  } else {
+    scaler.style.height = '';
+  }
+}
+window.addEventListener('load', scaleKeyboard);
+window.addEventListener('resize', scaleKeyboard);
+screen.orientation && screen.orientation.addEventListener('change', ()=>setTimeout(scaleKeyboard,100));
+
+// ─────────────────────────────────────────
+//  TOUCH SUPPORT (with glissando)
 // ─────────────────────────────────────────
 function ensureAudio() {
   if (!ctx) startAudio();
 }
 
-// Note keys
-document.querySelectorAll('.k[id^="k-"]').forEach(el => {
-  const code = el.id.slice(2);
-  if (!KEY_MAP[code]) return;
-  el.addEventListener('touchstart', e => {
-    e.preventDefault(); ensureAudio();
+function codeFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el) return null;
+  const k = el.closest('.k[id^="k-"]');
+  if (!k) return null;
+  const code = k.id.slice(2);
+  return KEY_MAP[code] ? code : null;
+}
+
+// track: touchId → current code
+const touchNotes = new Map();
+
+document.querySelector('.kbd-panel').addEventListener('touchstart', e => {
+  e.preventDefault(); ensureAudio();
+  for (const t of e.changedTouches) {
+    const code = codeFromPoint(t.clientX, t.clientY);
+    if (!code) continue;
+    touchNotes.set(t.identifier, code);
     if (!held.has(code)) { held.add(code); playNote(code); }
-  }, {passive:false});
-  el.addEventListener('touchend', e => {
-    e.preventDefault();
-    held.delete(code); stopNote(code); setKeyOn(code,false); updateDisplay();
-  }, {passive:false});
-  el.addEventListener('touchcancel', e => {
-    held.delete(code); stopNote(code); setKeyOn(code,false); updateDisplay();
-  });
-});
+  }
+}, {passive:false});
+
+document.querySelector('.kbd-panel').addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const newCode = codeFromPoint(t.clientX, t.clientY);
+    const oldCode = touchNotes.get(t.identifier);
+    if (newCode === oldCode) continue;
+    // release old
+    if (oldCode) {
+      touchNotes.set(t.identifier, null);
+      held.delete(oldCode);
+      stopNote(oldCode);
+      setKeyOn(oldCode, false);
+    }
+    // press new
+    if (newCode) {
+      touchNotes.set(t.identifier, newCode);
+      if (!held.has(newCode)) { held.add(newCode); playNote(newCode); }
+    }
+    updateDisplay();
+  }
+}, {passive:false});
+
+function touchEnd(e) {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const code = touchNotes.get(t.identifier);
+    touchNotes.delete(t.identifier);
+    if (!code) continue;
+    held.delete(code);
+    stopNote(code);
+    setKeyOn(code, false);
+  }
+  updateDisplay();
+}
+document.querySelector('.kbd-panel').addEventListener('touchend', touchEnd, {passive:false});
+document.querySelector('.kbd-panel').addEventListener('touchcancel', touchEnd, {passive:false});
 
 // Sustain (space)
 const spEl = document.getElementById('k-space');
